@@ -33,6 +33,7 @@
 
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
+use std::sync::Arc;
 
 use near_account_id::AccountId;
 use near_jsonrpc_client::methods::query::RpcQueryResponse;
@@ -289,9 +290,15 @@ impl ProcessQuery for ViewBlock {
     }
 }
 
+#[derive(Debug)]
+pub struct StateOutput {
+    pub proof: Vec<Arc<[u8]>>,
+    pub data: HashMap<Vec<u8>, Vec<u8>>,
+}
+
 impl ProcessQuery for ViewState {
     type Method = methods::query::RpcQueryRequest;
-    type Output = HashMap<Vec<u8>, Vec<u8>>;
+    type Output = StateOutput;
 
     fn into_request(self, block_reference: BlockReference) -> Result<Self::Method> {
         Ok(Self::Method {
@@ -299,14 +306,17 @@ impl ProcessQuery for ViewState {
             request: QueryRequest::ViewState {
                 account_id: self.account_id,
                 prefix: StoreKey::from(self.prefix.map(Vec::from).unwrap_or_default()),
-                include_proof: false,
+                include_proof: true,
             },
         })
     }
 
     fn from_response(resp: <Self::Method as RpcMethod>::Response) -> Result<Self::Output> {
         match resp.kind {
-            QueryResponseKind::ViewState(state) => Ok(tool::into_state_map(state.values)),
+            QueryResponseKind::ViewState(state) => Ok(StateOutput {
+                proof: state.proof,
+                data: tool::into_state_map(state.values),
+            }),
             _ => Err(RpcErrorCode::QueryReturnedInvalidData.message("while querying state")),
         }
     }

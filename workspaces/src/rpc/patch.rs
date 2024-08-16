@@ -135,7 +135,7 @@ impl<'a> ImportContractTransaction<'a> {
                 .from_network
                 .view_state(from_account_id)
                 .block_reference(block_ref)
-                .await?;
+                .await?.data;
 
             patch = patch.states(
                 states
