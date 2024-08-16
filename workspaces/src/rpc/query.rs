@@ -41,7 +41,7 @@ use near_jsonrpc_client::methods::{self, RpcMethod};
 use near_jsonrpc_primitives::types::chunks::ChunkReference;
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::types::{BlockId, BlockReference, StoreKey};
-use near_primitives::views::{BlockView, QueryRequest};
+use near_primitives::views::{BlockView, LightClientBlockView, QueryRequest};
 use near_token::NearToken;
 
 use crate::error::RpcErrorCode;
@@ -182,6 +182,37 @@ pub struct ViewAccessKey {
 
 pub struct ViewAccessKeyList {
     pub(crate) account_id: AccountId,
+}
+
+pub struct LightClientHeader {
+    last_block_hash: near_primitives::hash::CryptoHash,
+}
+
+pub struct LightClientResponse {}
+
+impl ProcessQuery for LightClientHeader {
+    type Method = methods::next_light_client_block::RpcLightClientNextBlockRequest;
+
+    type Output = LightClientBlockView;
+
+    fn into_request(self, block_ref: BlockReference) -> Result<Self::Method> {
+        Ok(Self::Method {
+            last_block_hash: self.last_block_hash,
+        })
+    }
+
+    fn from_response(resp: <Self::Method as RpcMethod>::Response) -> Result<Self::Output> {
+        Ok(resp.unwrap())
+    }
+}
+
+impl<'a> Query<'a, LightClientHeader> {
+    pub(crate) fn next_light_client_block(
+        client: &'a Client,
+        last_block_hash: near_primitives::hash::CryptoHash,
+    ) -> Self {
+        Self::new(client, LightClientHeader { last_block_hash })
+    }
 }
 
 pub struct GasPrice;

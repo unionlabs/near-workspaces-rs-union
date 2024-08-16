@@ -5,12 +5,12 @@ use crate::result::{ExecutionFinalResult, Result};
 use crate::rpc::client::Client;
 use crate::rpc::patch::{ImportContractTransaction, PatchTransaction};
 use crate::rpc::query::{
-    GasPrice, Query, QueryChunk, ViewAccessKey, ViewAccessKeyList, ViewAccount, ViewBlock,
+    GasPrice, LightClientHeader, Query, QueryChunk, ViewAccessKey, ViewAccessKeyList, ViewAccount, ViewBlock,
     ViewCode, ViewFunction, ViewState,
 };
 use crate::types::{AccountId, InMemorySigner, NearToken, PublicKey};
 use crate::worker::Worker;
-use crate::{Account, Network};
+use crate::{Account, CryptoHash, Network};
 
 #[cfg(feature = "experimental")]
 use {
@@ -93,6 +93,16 @@ where
     /// info on a contract's internal data.
     pub fn view_state(&self, contract_id: &AccountId) -> Query<'_, ViewState> {
         Query::view_state(self.client(), contract_id)
+    }
+
+    pub fn next_light_client_block(
+        &self,
+        last_block_hash: &CryptoHash,
+    ) -> Query<'_, LightClientHeader> {
+        Query::next_light_client_block(
+            self.client(),
+            near_primitives::hash::CryptoHash(last_block_hash.0.clone()),
+        )
     }
 
     /// View the block from the network. Supply additional parameters such as [`block_height`]
